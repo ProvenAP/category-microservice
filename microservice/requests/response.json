@@ -1,3 +1,4 @@
 {
-  "ok": true
+  "ok": false,
+  "error": "SQLITE_ERROR: no such table: categories"
 }

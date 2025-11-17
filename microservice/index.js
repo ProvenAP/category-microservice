@@ -175,10 +175,132 @@ function showUserTable(tableName, itemNameColumn, callback) {
     });
 }
 
-function removeCategoryFromItem(itemsTableName, categoryName, itemName, callback) {
+function removeCategoriesFromTable(tableName, callback) {
+    db.serialize(() => {
+
+        console.log("Removing item_id column from table:", tableName);
+
+        db.all(`PRAGMA table_info(${tableName})`, [], (err, cols) => {
+            if (err) return callback({ ok: false, error: err.message });
+            if (cols.length === 0) return callback({ ok: false, error: "Table not found." });
+
+            const oldCols = cols.map(c => c.name);
+            if (!oldCols.includes("item_id")) {
+                return callback({ ok: false, error: "Table has no item_id column." });
+            }
+
+            const keepCols = oldCols.filter(c => c !== "item_id");
+            const colList = keepCols.join(", ");
+            const removeConnectorSQL = `
+                DELETE FROM connector
+                WHERE item_id IN (SELECT item_id FROM ${tableName})
+            `;
+
+            db.run(removeConnectorSQL, [], function (err) {
+                if (err)
+                    return callback({ ok: false, error: "Error cleaning connector: " + err.message });
+
+                const newTable = tableName + "_no_itemid";
+                const createSQL = `
+                    CREATE TABLE ${newTable} (
+                        ${keepCols.map(c => `${c} TEXT`).join(", ")}
+                    )
+                `;
+
+                db.run(createSQL, [], (err) => {
+                    if (err) return callback({ ok: false, error: err.message });
+                    const copySQL = `
+                        INSERT INTO ${newTable} (${colList})
+                        SELECT ${colList}
+                        FROM ${tableName}
+                    `;
+
+                    db.run(copySQL, [], (err) => {
+                        if (err) return callback({ ok: false, error: err.message });
+                        db.run(`DROP TABLE ${tableName}`, [], (err) => {
+                            if (err) return callback({ ok: false, error: err.message });
+                            db.run(
+                                `ALTER TABLE ${newTable} RENAME TO ${tableName}`,
+                                [],
+                                (err) => {
+                                    if (err)
+                                        return callback({ ok: false, error: err.message });
+                                    callback({
+                                        ok: true,
+                                        message: `item_id removed from table '${tableName}' and all related connector links deleted.`
+                                    });
+                                }
+                            );
+                        });
+                    });
+                });
+            });
+        });
+    });
+}
+
+
+function dropCategoriesAndConnector(callback) {
+    db.serialize(() => {
+
+        db.run(`DROP TABLE IF EXISTS connector`, [], function(err) {
+            if (err) return callback({ ok: false, error: "Error dropping connector table: " + err.message });
+
+            db.run(`DROP TABLE IF EXISTS categories`, [], function(err2) {
+                if (err2) return callback({ ok: false, error: "Error dropping categories table: " + err2.message });
+
+                callback({
+                    ok: true,
+                    message: "Both 'categories' and 'connector' tables have been completely dropped."
+                });
+            });
+        });
+    });
+}
+
+
+function removeCategory(categoryId, callback) {
+    db.serialize(() => {
+        const deleteConnectorSQL = `
+            DELETE FROM connector
+            WHERE category_id = ? `;
+        db.run(deleteConnectorSQL, [categoryId], function (err) {
+            if (err) {
+                return callback({
+                    ok: false,
+                    error: "Error removing connector links: " + err.message
+                });
+            }
+            const deleteCategorySQL = `
+                DELETE FROM categories
+                WHERE category_id = ? `;
+            db.run(deleteCategorySQL, [categoryId], function (err2) {
+                if (err2) {
+                    return callback({
+                        ok: false,
+                        error: "Error deleting category: " + err2.message
+                    });
+                }
+                if (this.changes === 0) {
+                    return callback({
+                        ok: false,
+                        error: "No category found with that ID."
+                    });
+                }
+                callback({
+                    ok: true,
+                    message: `Category ${categoryId} and all its item links have been removed.`
+                });
+            });
+        });
+    });
+}
+
+
+function removeCategoryFromItem(itemsTableName, itemNameColumn, categoryName, itemName, callback) {
     const sql = `
         DELETE FROM connector
-        WHERE item_id = (SELECT item_id FROM ${itemsTableName} WHERE item_name = ?)
+        WHERE item_id = (SELECT item_id FROM ${itemsTableName} WHERE ${itemNameColumn} = ?)
         AND category_id = (SELECT category_id FROM categories WHERE ctgry_name = ?);
     `;
 
@@ -189,12 +311,6 @@ function removeCategoryFromItem(itemsTableName, categoryName, itemName, callback
         callback({ ok: true, message: "Category removed successfully." });
     });
 }
-
-
-
-
-
-
 
 
 
@@ -230,8 +346,14 @@ fs.watchFile(reqFile, { interval: 500 }, () => {
         addItemToCategory(reqObj.body.categoryId, reqObj.body.itemId, writeResponse);
     } else if (reqObj.action === "showUserTable" && reqObj.body?.tableName && reqObj.body?.itemNameColumn) {
         showUserTable(reqObj.body.tableName, reqObj.body.itemNameColumn, writeResponse);
-    } else if (reqObj.action === "removeCategoryFromItem" && reqObj.body?.categoryName && reqObj.body?.itemName) {
-        removeCategoryFromItem(reqObj.body.categoryName, reqObj.body.itemName, writeResponse);
+    } else if (reqObj.action === "removeCategoryFromItem" && reqObj.body.itemsTableName && reqObj.body.itemNameColumn && reqObj.body?.categoryName && reqObj.body?.itemName) {
+        removeCategoryFromItem(reqObj.body.itemsTableName, reqObj.body.itemNameColumn, reqObj.body.categoryName, reqObj.body.itemName, writeResponse);
+    } else if (reqObj.action === "removeCategory" && reqObj.body?.categoryId != null) {
+    removeCategory(Number(reqObj.body.categoryId), writeResponse);
+    } else if (reqObj.action === "removeCategoriesFromTable" && reqObj.body?.tableName) {
+    removeCategoriesFromTable(reqObj.body.tableName, writeResponse);
+    } else if (reqObj.action === "dropCategoriesAndConnector") {
+    dropCategoriesAndConnector(writeResponse);
     } else {
         writeResponse({ ok: false, error: "Unknown action or missing parameters" });
     }
@@ -240,18 +362,6 @@ fs.watchFile(reqFile, { interval: 500 }, () => {
 console.log("Microservice running… watching request.json");
 
 
-
-
-// list all current categories in the category table
-
-//create a new category (includes description)
-
-// add a category to an item
-// desc: in connector, create a row which contains the item_id and category_id
-
-
-//remove category to an item
-//desc: remove the row in which item_id and category_id both match up with the user request
 
 
 //update category name

@@ -5,7 +5,7 @@ const db = require("./microservice/db");
 
 
 // if no database exists in this, create one
-//backticks are used since this is a multiline string
+// backticks are used since this is a multiline string
 
 // db.serialize(() => {
 // db.run(`    
@@ -94,8 +94,8 @@ async function addCategory() {
     sendRequest({
         action: "addCategory",
         body: {
-            categoryName: "Orange",
-            description: "Foods that are primarily the color orange"
+            categoryName: "Green",
+            description: "Foods that are primarily the color Green"
         }
     });
 
@@ -103,11 +103,11 @@ async function addCategory() {
     console.log("Microservice responded:", response);
 }
 
-async function addItemToCategoryTest() {
+async function addItemToCategory() {
     sendRequest({
         action: "addItemToCategory",
         body: {
-            categoryId: 1,
+            categoryId: 2,
             itemId: 3 
         }
     });
@@ -117,52 +117,64 @@ async function addItemToCategoryTest() {
 }
 
 // here are all our commands that delete in some way
+async function removeMicroserviceTables() {
+    sendRequest({
+        action: "dropCategoriesAndConnector"
+
+    });
+    const response = await waitResponse();
+    console.log("Microservice responded with:", response);
+}
+
+async function removeCategoriesFromTable() {
+    sendRequest({
+        action: "removeCategoriesFromTable",
+        body: {
+            tableName: "test_sample"
+        }
+    });
+
+    const response = await waitResponse();
+    console.log("Microservice responded with:", response);
+}
+
+
+async function removeCategory() {
+    sendRequest({
+        action: "removeCategory",
+        body: {
+            categoryId: 1
+        }
+    });
+
+    const response = await waitResponse();
+    console.log("Microservice responded with:", response);
+}
 
 async function removeCategoryFromItem() {
     sendRequest({
         action: "removeCategoryFromItem",  
         body: {
             itemsTableName: "test_sample",
+            itemNameColumn: "ingredient_name",
             categoryName: "Orange", 
             itemName: "carrot"       
         }
     });
 
     const response = await waitResponse();
-    console.log("\nMicroservice response: ", response);
+    console.log("\nMicroservice responded with: ", response);
 }
 
 
 
 
 async function runAll() {
-    await showUserTableWithCategories();
+    
 }
 
 runAll();
 
-
-
-
-
-
-
-
- 
-
-
-
-//send a call to index.js to create a column in test_sample for categories
-
-//send a message to index.js and receive a display of the categories table
-
-//add a category called "orange" with the description of "color of the ingredient" to the category table
-
-
-//add both carrot and orange to the orange category
-
-
-//show the user database and show a table in which each item id is shown with its categories
 
 
 
