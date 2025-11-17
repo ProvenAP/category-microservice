@@ -1,4 +1,10 @@
 {
-  "ok": false,
-  "error": "SQLITE_ERROR: no such table: categories"
+  "ok": true,
+  "categories": [
+    {
+      "category_id": 1,
+      "ctgry_name": "New Category Name",
+      "description": "New Category Description"
+    }
+  ]
 }

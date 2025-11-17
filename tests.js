@@ -1,12 +1,11 @@
-// this file will contain our test cases
 const sqlite3 = require("sqlite3").verbose();
 const fs = require("fs");
 const db = require("./microservice/db");
 
 
 // if no database exists in this, create one
-// backticks are used since this is a multiline string
 
+// by uncommenting this following code block, you create a test table to run commands on
 // db.serialize(() => {
 // db.run(`    
 //     CREATE TABLE IF NOT EXISTS test_sample (
@@ -50,21 +49,17 @@ function waitResponse() {
 }
 
 
-//these are functions that can be used as needed by users
 
-// firstly, here are all the functions that will show you information about your tables
+// Here are all the functions that will show you information about your tables
 
-async function showUserTableWithCategories() {
+async function showUserTableWithCategories(tableName, itemNameColumn) {
     sendRequest({
         action: "showUserTable",
-        body: {
-            tableName: "test_sample",
-            itemNameColumn: "ingredient_name" 
-        }
+        body: { tableName, itemNameColumn }
     });
 
     const response = await waitResponse();
-    console.log("\nMicroservice responded: ", response);
+    console.log("Microservice responded with: ", response);
 }
 
 async function showCategories() {
@@ -78,99 +73,96 @@ async function showCategories() {
 
 // here are all the functions that work on adding
 
-
-async function addCategoriesColumn() {
+async function addCategoriesColumn(tableName) {
     sendRequest({
         action: "prepareUserTable",
-        body: { tableName: "test_sample" }
-    });
-
-    const response = await waitResponse();
-    console.log("\nMicroservice response: ", response);
-}
-
-
-async function addCategory() {
-    sendRequest({
-        action: "addCategory",
-        body: {
-            categoryName: "Green",
-            description: "Foods that are primarily the color Green"
-        }
-    });
-
-    const response = await waitResponse();
-    console.log("Microservice responded:", response);
-}
-
-async function addItemToCategory() {
-    sendRequest({
-        action: "addItemToCategory",
-        body: {
-            categoryId: 2,
-            itemId: 3 
-        }
+        body: { tableName }
     });
 
     const response = await waitResponse();
     console.log("Microservice responded with:", response);
 }
 
-// here are all our commands that delete in some way
+
+async function addCategory(categoryName, description) {
+    sendRequest({
+        action: "addCategory",
+        body: { categoryName, description }
+    });
+
+    const response = await waitResponse();
+    console.log("Microservice responded with:", response);
+}
+
+async function addItemToCategory(categoryId, itemId) {
+    sendRequest({
+        action: "addItemToCategory",
+        body: { categoryId, itemId }
+    });
+
+    const response = await waitResponse();
+    console.log("Microservice responded with:", response);
+}
+
+// here are the commands that update information in the categories
+
+async function updateCategoryName(categoryId, newName) {
+    sendRequest({
+        action: "updateCategoryName",
+        body: { categoryId, newName }
+  });
+    const response = await waitResponse();
+    console.log("Microservice responded with:", response);
+}
+
+async function updateCategoryDescription(categoryId, newDescription) {
+    sendRequest({
+        action: "updateCategoryDescription",
+        body: { categoryId, newDescription }
+  });
+    const response = await waitResponse();
+    console.log("Microservice responded with:", response);
+}
+
+// here are all our commands that delete category information in some way
 async function removeMicroserviceTables() {
     sendRequest({
         action: "dropCategoriesAndConnector"
-
     });
     const response = await waitResponse();
     console.log("Microservice responded with:", response);
 }
 
-async function removeCategoriesFromTable() {
+async function removeCategoriesFromTable(tableName) {
     sendRequest({
         action: "removeCategoriesFromTable",
-        body: {
-            tableName: "test_sample"
-        }
+        body: { tableName }
     });
-
     const response = await waitResponse();
     console.log("Microservice responded with:", response);
 }
 
 
-async function removeCategory() {
+async function removeCategory(categoryId) {
     sendRequest({
         action: "removeCategory",
-        body: {
-            categoryId: 1
-        }
+        body: { categoryId }
     });
-
     const response = await waitResponse();
     console.log("Microservice responded with:", response);
 }
 
-async function removeCategoryFromItem() {
+async function removeCategoryFromItem(itemsTableName, itemNameColumn, categoryName, itemName) {
     sendRequest({
-        action: "removeCategoryFromItem",  
-        body: {
-            itemsTableName: "test_sample",
-            itemNameColumn: "ingredient_name",
-            categoryName: "Orange", 
-            itemName: "carrot"       
-        }
+        action: "removeCategoryFromItem",
+        body: { itemsTableName, itemNameColumn, categoryName, itemName }
     });
-
     const response = await waitResponse();
     console.log("\nMicroservice responded with: ", response);
 }
 
 
-
-
 async function runAll() {
-    
 }
 
 runAll();

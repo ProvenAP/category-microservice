@@ -175,6 +175,45 @@ function showUserTable(tableName, itemNameColumn, callback) {
     });
 }
 
+
+function updateCategoryName(categoryId, newName, callback) {
+    const sql = `
+        UPDATE categories
+        SET ctgry_name = ?
+        WHERE category_id = ?
+    `;
+
+    db.run(sql, [newName, categoryId], function(err) {
+        if (err) return callback({ ok: false, error: err.message });
+        if (this.changes === 0) return callback({ ok: false, error: "No category found with that ID." });
+
+        callback({
+            ok: true,
+            message: `Category ${categoryId} name updated to '${newName}'.`
+        });
+    });
+}
+
+
+function updateCategoryDescription(categoryId, newDescription, callback) {
+    const sql = `
+        UPDATE categories
+        SET description = ?
+        WHERE category_id = ?
+    `;
+
+    db.run(sql, [newDescription, categoryId], function(err) {
+        if (err) return callback({ ok: false, error: err.message });
+        if (this.changes === 0) return callback({ ok: false, error: "No category found with that ID." });
+
+        callback({
+            ok: true,
+            message: `Category ${categoryId} description updated.`
+        });
+    });
+}
+
+
 function removeCategoriesFromTable(tableName, callback) {
     db.serialize(() => {
 
@@ -313,14 +352,6 @@ function removeCategoryFromItem(itemsTableName, itemNameColumn, categoryName, it
 }
 
 
-
-
-
-
-
-
-
-
 // This watches request.json for incoming requests
 fs.watchFile(reqFile, { interval: 500 }, () => {
     if (!fs.existsSync(reqFile)) return;
@@ -346,6 +377,10 @@ fs.watchFile(reqFile, { interval: 500 }, () => {
         addItemToCategory(reqObj.body.categoryId, reqObj.body.itemId, writeResponse);
     } else if (reqObj.action === "showUserTable" && reqObj.body?.tableName && reqObj.body?.itemNameColumn) {
         showUserTable(reqObj.body.tableName, reqObj.body.itemNameColumn, writeResponse);
+    } else if (reqObj.action === "updateCategoryName" && reqObj.body?.categoryId &&reqObj.body?.newName) {
+        updateCategoryName(reqObj.body.categoryId, reqObj.body.newName, writeResponse);
+    } else if (reqObj.action === "updateCategoryDescription" && reqObj.body?.categoryId && reqObj.body?.newDescription) {
+        updateCategoryDescription(reqObj.body.categoryId, reqObj.body.newDescription, writeResponse);
     } else if (reqObj.action === "removeCategoryFromItem" && reqObj.body.itemsTableName && reqObj.body.itemNameColumn && reqObj.body?.categoryName && reqObj.body?.itemName) {
         removeCategoryFromItem(reqObj.body.itemsTableName, reqObj.body.itemNameColumn, reqObj.body.categoryName, reqObj.body.itemName, writeResponse);
     } else if (reqObj.action === "removeCategory" && reqObj.body?.categoryId != null) {
@@ -360,16 +395,3 @@ fs.watchFile(reqFile, { interval: 500 }, () => {
 });
 
 console.log("Microservice running… watching request.json");
-
-
-
-
-//update category name
-
-//update category description
-
-//remove categories from table
-//desc: remove the column from the user table and all connections in the connector table that match with item_id's from that table
-
-//delete all categories
-//desc: completely clear out the categories table
