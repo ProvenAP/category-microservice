@@ -1,0 +1,10 @@
+{
+  "ok": true,
+  "categories": [
+    {
+      "category_id": 1,
+      "ctgry_name": "New Category Name",
+      "description": "New Category Description"
+    }
+  ]
+}

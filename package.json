@@ -1,0 +1,16 @@
+{
+  "name": "categories-microservice",
+  "version": "1.0.0",
+  "description": "Gives the user the ability to add categories to existing items in their database",
+  "license": "ISC",
+  "author": "",
+  "type": "commonjs",
+  "main": "microservice/index.js",
+  "scripts": {
+    "test": "node tests.js",
+    "start": "node microservice/index.js"
+  },
+  "dependencies": {
+    "sqlite3": "^5.1.7"
+  }
+}
