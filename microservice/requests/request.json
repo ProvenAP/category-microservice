@@ -1,0 +1,7 @@
+{
+  "action": "showUserTable",
+  "body": {
+    "tableName": "test_sample",
+    "itemNameColumn": "ingredient_name"
+  }
+}

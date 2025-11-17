@@ -5,12 +5,12 @@
   "license": "ISC",
   "author": "",
   "type": "commonjs",
-  "main": "index.js",
+  "main": "microservice/index.js",
   "scripts": {
     "test": "node tests.js",
-    "start": "index.js"
+    "start": "node microservice/index.js"
   },
   "dependencies": {
-    // add to this later, sqlite3 and axios are here
+    "sqlite3": "^5.1.7"
   }
 }
