@@ -163,7 +163,18 @@ async function removeCategoryFromItem(itemsTableName, itemNameColumn, categoryNa
 
 
 async function runAll() {
+    console.log("--- TEST 1: Show Categories ---");
+    await showCategories();
+
+    console.log("\n--- TEST 2: Add Category ---");
+    await addCategory("Snacks", "Snack foods");
+
+    console.log("\n--- TEST 3: Show Categories Again ---");
+    await showCategories();
 }
+
+runAll();
+
 
 runAll();
 
