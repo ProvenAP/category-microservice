@@ -173,8 +173,6 @@ async function runAll() {
     await showCategories();
 }
 
-runAll();
-
 
 runAll();
 
