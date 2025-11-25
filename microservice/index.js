@@ -52,53 +52,79 @@ function prepareUserTable(tableName, callback) {
     console.log("Preparing user table:", tableName);
 
     db.serialize(() => {
-        db.all(`PRAGMA table_info(${tableName})`, [], (err, cols) => {
-            if (err || cols.length === 0) {
-                return callback({ ok: false, error: "Table not found: " + tableName });
-            }
-
+       getTableColumns(tableName, (err,cols) => {
+        if (err) return callback({ ok: false, error: err});
             const oldCols = cols.map(c => c.name);
             const colList = oldCols.join(", ");
             const newTable = tableName + "_new";
-            const createSQL = `
-                CREATE TABLE ${newTable} (
-                    item_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    ${oldCols.map(c => `${c} TEXT`).join(", ")}
-                )
-            `;
-            db.run(createSQL, [], (err) => {
-                if (err) return callback({ ok: false, error: err.message });
-                // Copy data
-                db.run(
-                    `INSERT INTO ${newTable} (${colList}) SELECT ${colList} FROM ${tableName}`,
-                    [],
-                    (err) => {
+
+            createNewTable(newTable, oldCols, (err) => {
+                if (err) return callback({ ok: false, error: err});
+
+                copyTableData(tableName, newTable, colList, (err) => {
                         if (err) return callback({ ok: false, error: err.message });
-                        // Drop the old table
-                        db.run(`DROP TABLE ${tableName}`, [], (err) => {
-                            if (err) return callback({ ok: false, error: err.message });
-                            // Rename new → original name
-                            db.run(
-                                `ALTER TABLE ${newTable} RENAME TO ${tableName}`,
-                                [],
-                                (err) => {
-                                    if (err) return callback({ ok: false, error: err.message });
-                                    createConnector(tableName, (res) => {
-                                        if (!res.ok) return callback(res);
-                                        callback({
-                                            ok: true,
-                                            message: `item_id added to table '${tableName}'`
-                                        });
-                                    });
-                                }
-                            );
-                        });
-                    }
-                );
+
+                    replaceOldTable(tableName, newTable, (err) => {
+                        if (err) return callback({ ok: false, error: err.message });
+
+                            createConnector(tableName, (res) => {
+                                if (!res.ok) return callback(res);
+                                callback({
+                                    ok: true,
+                                    message: `item_id added to table '${tableName}'`
+                                });
+                            });
+                    });
+                });
             });
         });
     });
 }
+
+function getTableColumns(tableName, callback) {
+    db.all(`PRAGMA table_info(${tableName})`, [], (err, cols) => {
+            if (err || cols.length === 0) {
+                return callback({ ok: false, error: "Table not found: " + tableName });
+            }
+            callback(null, cols);
+        });
+}
+
+function createNewTable(newTable, oldCols, callback) {
+    const createSQL = `
+        CREATE TABLE ${newTable} (
+            item_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            ${oldCols.map(c => `${c} TEXT`).join(", ")}
+        )
+    `;
+    db.run(createSQL, [], (err) => {
+        callback(err ? err.message : null);
+    });
+}
+
+function copyTableData(tableName, newTable, colList, callback) {
+    const sql = `
+        INSERT INTO ${newTable} (${colList})
+        SELECT ${colList} FROM ${tableName}
+    `;
+    db.run(sql, [], (err) => {
+        callback(err ? err.message : null);
+    });
+}
+
+function replaceOldTable(tableName, newTable, callback) {
+    db.run(`DROP TABLE ${tableName}`, [], (err) => {
+        if (err) return callback(err.message);
+
+        db.run(`ALTER TABLE ${newTable} RENAME TO ${tableName}`, [], (err) => {
+            callback(err ? err.message : null);
+        });
+    });
+}
+
+
+
+
 
 function showCategories(callback) {
     const sql = "SELECT * FROM categories";
